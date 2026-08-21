@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#020617" />
+    <meta
+      name="description"
+      content="Mappa del mondo in 3D: esplora la Terra, cerca i paesi e vola verso le capitali."
+    />
+    <title>Mappa del mondo 3D</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@360;480;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="globe"></canvas>
+
+      <div id="loader" class="loader">
+        <div class="loader-orb"></div>
+        <p>Caricamento del pianeta…</p>
+      </div>
+
+      <header class="hud top">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <h1>Mappa del mondo 3D</h1>
+            <p>Esplora la Terra in tempo reale</p>
+          </div>
+        </div>
+        <label class="search">
+          <span class="sr-only">Cerca un paese</span>
+          <input
+            id="search"
+            type="search"
+            placeholder="Cerca un paese o una capitale…"
+            autocomplete="off"
+            enterkeyhint="search"
+          />
+          <ul id="suggestions" class="suggestions" hidden></ul>
+        </label>
+      </header>
+
+      <aside id="filters" class="hud filters">
+        <button class="chip active" data-continent="Tutti" type="button">Tutti</button>
+        <button class="chip" data-continent="Europa" type="button">Europa</button>
+        <button class="chip" data-continent="Africa" type="button">Africa</button>
+        <button class="chip" data-continent="Asia" type="button">Asia</button>
+        <button class="chip" data-continent="America" type="button">America</button>
+        <button class="chip" data-continent="Oceania" type="button">Oceania</button>
+      </aside>
+
+      <section id="panel" class="hud panel" hidden>
+        <button id="close-panel" class="icon-btn" type="button" aria-label="Chiudi scheda">
+          ×
+        </button>
+        <div class="panel-head">
+          <img id="flag" alt="" width="48" height="36" />
+          <div>
+            <p id="continent-label" class="eyebrow"></p>
+            <h2 id="country-name"></h2>
+          </div>
+        </div>
+        <dl>
+          <div>
+            <dt>Capitale</dt>
+            <dd id="capital"></dd>
+          </div>
+          <div>
+            <dt>Popolazione</dt>
+            <dd id="population"></dd>
+          </div>
+          <div>
+            <dt>Coordinate</dt>
+            <dd id="coords"></dd>
+          </div>
+        </dl>
+        <button id="fly-again" type="button">Vola di nuovo qui</button>
+      </section>
+
+      <div id="tooltip" class="tooltip" hidden></div>
+
+      <footer class="hud bottom">
+        <div class="toggles">
+          <label><input id="toggle-rotate" type="checkbox" checked /> Rotazione</label>
+          <label><input id="toggle-clouds" type="checkbox" checked /> Nuvole</label>
+          <label><input id="toggle-night" type="checkbox" checked /> Notte</label>
+        </div>
+        <p class="hint">Trascina per ruotare · pizzica o scorri per zoom</p>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
