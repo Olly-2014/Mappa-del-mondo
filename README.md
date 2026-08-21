@@ -2,6 +2,8 @@
 
 Globo interattivo della Terra: ruota il pianeta, cerca un paese e vola verso la sua capitale.
 
+**Usala subito:** [https://olly-2014.github.io/Mappa-del-mondo/](https://olly-2014.github.io/Mappa-del-mondo/)
+
 ## Cosa puoi fare
 
 - Esplorare la Terra in 3D con texture satellitari, nuvole e terminatore giorno/notte
@@ -21,12 +23,13 @@ npm run dev
 
 Poi apri l’indirizzo mostrato da Vite (di solito `http://localhost:5173`).
 
-## Build
+## Build e pubblicazione su GitHub Pages
 
 ```bash
-npm run build
-npm run preview
+npm run publish:pages
 ```
+
+Il comando genera il sito statico e lo copia nella root del repository, che è la cartella servita da GitHub Pages.
 
 ## Tecnologie
 
