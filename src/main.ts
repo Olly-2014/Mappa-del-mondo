@@ -19,27 +19,23 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { COUNTRIES, type Continent, type Country } from "./data/countries";
 import { EARTH_RADIUS, formatCoords, formatPopulation, latLngToVector3 } from "./geo";
 import { createEarth, createStarfield } from "./scene/earth";
-import { loadGlobeTextures } from "./scene/textures";
+import { createImmediateTextures, loadRemoteTextures } from "./scene/textures";
 
-const canvas = document.querySelector<HTMLCanvasElement>("#globe");
-const loader = document.querySelector<HTMLElement>("#loader");
-const searchInput = document.querySelector<HTMLInputElement>("#search");
-const suggestions = document.querySelector<HTMLUListElement>("#suggestions");
-const panel = document.querySelector<HTMLElement>("#panel");
-const tooltip = document.querySelector<HTMLElement>("#tooltip");
-const filters = document.querySelector<HTMLElement>("#filters");
-
-if (
-  !canvas ||
-  !loader ||
-  !searchInput ||
-  !suggestions ||
-  !panel ||
-  !tooltip ||
-  !filters
-) {
-  throw new Error("Interfaccia non trovata");
+function required<T extends Element>(selector: string): T {
+  const element = document.querySelector<T>(selector);
+  if (!element) {
+    throw new Error(`Elemento ${selector} mancante`);
+  }
+  return element;
 }
+
+const canvas = required<HTMLCanvasElement>("#globe");
+const loader = required<HTMLElement>("#loader");
+const searchInput = required<HTMLInputElement>("#search");
+const suggestions = required<HTMLUListElement>("#suggestions");
+const panel = required<HTMLElement>("#panel");
+const tooltip = required<HTMLElement>("#tooltip");
+const filters = required<HTMLElement>("#filters");
 
 const requiredIds = [
   "flag",
@@ -74,7 +70,7 @@ const scene = new Scene();
 scene.background = new Color("#020617");
 
 const camera = new PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 4000);
-camera.position.set(0, 40, 280);
+camera.position.copy(latLngToVector3(22, 12, 280));
 
 const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -103,6 +99,9 @@ let selected: Country | null = null;
 let hoverIndex = -1;
 let filterContinent: Continent | "Tutti" = "Tutti";
 let flyAnimation: number | null = null;
+let ready = false;
+let pointerStart = new Vector2();
+let dragged = false;
 let markers: InstancedMesh;
 let markerHalo: Mesh;
 let clouds: Mesh;
@@ -127,6 +126,9 @@ function setInstanceColor(index: number, hex: number): void {
 }
 
 function refreshMarkers(preferred?: Country | null): void {
+  if (!ready) {
+    return;
+  }
   const countries = visibleCountries();
   markerIndex.clear();
   countries.forEach((country, index) => {
@@ -281,8 +283,8 @@ function onResize(): void {
 }
 
 async function start(): Promise<void> {
-  const textures = await loadGlobeTextures();
-  const earth = createEarth(textures.day, textures.night, textures.bump);
+  const textures = createImmediateTextures();
+  const earth = createEarth(textures.day, textures.night);
   clouds = earth.clouds;
   earthMaterial = earth.earthMaterial;
   scene.add(earth.group);
@@ -301,6 +303,7 @@ async function start(): Promise<void> {
   markerHalo.visible = false;
   scene.add(markerHalo);
 
+  ready = true;
   refreshMarkers();
   loader.classList.add("hide");
 
@@ -311,6 +314,13 @@ async function start(): Promise<void> {
     controls.update();
     renderer.render(scene, camera);
   });
+
+  const satellite = await loadRemoteTextures();
+  if (satellite) {
+    earthMaterial.uniforms.dayMap.value = satellite.day;
+    earthMaterial.uniforms.nightMap.value = satellite.night;
+    earthMaterial.uniformsNeedUpdate = true;
+  }
 }
 
 searchInput.addEventListener("input", () => renderSuggestions(searchInput.value));
@@ -347,14 +357,23 @@ filters.addEventListener("click", (event) => {
   }
 });
 
-canvas.addEventListener("pointermove", updateTooltip);
-canvas.addEventListener("pointerdown", () => {
+canvas.addEventListener("pointermove", (event) => {
+  if (pointerStart.distanceTo(new Vector2(event.clientX, event.clientY)) > 6) {
+    dragged = true;
+  }
+  updateTooltip(event);
+});
+canvas.addEventListener("pointerdown", (event) => {
+  pointerStart.set(event.clientX, event.clientY);
+  dragged = false;
   canvas.style.cursor = "grabbing";
 });
 canvas.addEventListener("pointerup", (event) => {
-  const country = pickCountry(event.clientX, event.clientY);
-  if (country) {
-    showCountry(country);
+  if (!dragged) {
+    const country = pickCountry(event.clientX, event.clientY);
+    if (country) {
+      showCountry(country);
+    }
   }
   canvas.style.cursor = "grab";
 });
@@ -376,4 +395,11 @@ nightToggle.addEventListener("change", () => {
 });
 window.addEventListener("resize", onResize);
 
-void start();
+void start().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : "errore sconosciuto";
+  loader.classList.remove("hide");
+  const text = loader.querySelector("p");
+  if (text) {
+    text.textContent = `Impossibile avviare il globo: ${message}`;
+  }
+});

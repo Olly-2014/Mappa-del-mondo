@@ -2,7 +2,6 @@ import {
   AdditiveBlending,
   BackSide,
   BufferGeometry,
-  Color,
   Float32BufferAttribute,
   Group,
   Mesh,
@@ -62,7 +61,6 @@ const earthFragment = `
 export function createEarth(
   day: Texture,
   night: Texture,
-  bump: Texture | null,
 ): {
   group: Group;
   clouds: Mesh;
@@ -84,22 +82,6 @@ export function createEarth(
 
   const earth = new Mesh(geometry, earthMaterial);
   group.add(earth);
-
-  if (bump) {
-    const relief = new Mesh(
-      geometry,
-      new MeshPhongMaterial({
-        map: day,
-        bumpMap: bump,
-        bumpScale: 1.4,
-        specular: new Color("#335577"),
-        shininess: 12,
-        transparent: true,
-        opacity: 0.18,
-      }),
-    );
-    group.add(relief);
-  }
 
   const clouds = new Mesh(
     new SphereGeometry(EARTH_RADIUS * 1.018, 64, 64),

@@ -5,7 +5,6 @@ const TEXTURE_BASE = "https://unpkg.com/three-globe@2.44.1/example/img";
 export const TEXTURE_URLS = {
   day: `${TEXTURE_BASE}/earth-blue-marble.jpg`,
   night: `${TEXTURE_BASE}/earth-night.jpg`,
-  bump: `${TEXTURE_BASE}/earth-topology.png`,
 };
 
 function makeCanvas(width: number, height: number): CanvasRenderingContext2D {
@@ -19,32 +18,51 @@ function makeCanvas(width: number, height: number): CanvasRenderingContext2D {
   return context;
 }
 
+function project(lat: number, lng: number): { x: number; y: number } {
+  return {
+    x: ((lng + 180) / 360) * 1024,
+    y: ((90 - lat) / 180) * 512,
+  };
+}
+
+function drawLand(
+  ctx: CanvasRenderingContext2D,
+  lat: number,
+  lng: number,
+  rx: number,
+  ry: number,
+  color: string,
+): void {
+  const { x, y } = project(lat, lng);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 export function createFallbackDayTexture(): CanvasTexture {
   const ctx = makeCanvas(1024, 512);
-  const gradient = ctx.createLinearGradient(0, 0, 0, 512);
-  gradient.addColorStop(0, "#8ecae6");
-  gradient.addColorStop(0.5, "#1d4ed8");
-  gradient.addColorStop(1, "#8ecae6");
-  ctx.fillStyle = gradient;
+  const ocean = ctx.createLinearGradient(0, 0, 0, 512);
+  ocean.addColorStop(0, "#7dd3fc");
+  ocean.addColorStop(0.5, "#1d4ed8");
+  ocean.addColorStop(1, "#7dd3fc");
+  ctx.fillStyle = ocean;
   ctx.fillRect(0, 0, 1024, 512);
 
-  ctx.fillStyle = "#15803d";
-  for (let i = 0; i < 90; i += 1) {
-    ctx.globalAlpha = 0.18 + Math.random() * 0.25;
-    ctx.beginPath();
-    ctx.ellipse(
-      Math.random() * 1024,
-      80 + Math.random() * 352,
-      40 + Math.random() * 120,
-      20 + Math.random() * 50,
-      Math.random() * Math.PI,
-      0,
-      Math.PI * 2,
-    );
-    ctx.fill();
-  }
+  const land = "#3f7d4e";
+  const desert = "#c4a574";
+  drawLand(ctx, 55, -105, 130, 55, land);
+  drawLand(ctx, 20, -100, 55, 28, land);
+  drawLand(ctx, -15, -60, 55, 80, land);
+  drawLand(ctx, 10, 20, 55, 70, land);
+  drawLand(ctx, 22, 10, 40, 22, desert);
+  drawLand(ctx, 55, 15, 45, 28, land);
+  drawLand(ctx, 55, 90, 160, 50, land);
+  drawLand(ctx, 25, 80, 70, 35, land);
+  drawLand(ctx, -5, 115, 70, 22, land);
+  drawLand(ctx, -25, 135, 40, 22, land);
+  drawLand(ctx, 75, 40, 180, 22, "#e2e8f0");
 
-  ctx.globalAlpha = 1;
   const texture = new CanvasTexture(ctx.canvas);
   texture.colorSpace = SRGBColorSpace;
   return texture;
@@ -97,23 +115,26 @@ async function loadTexture(url: string): Promise<Texture> {
   return texture;
 }
 
-export async function loadGlobeTextures(): Promise<{
-  day: Texture;
-  night: Texture;
-  bump: Texture | null;
-}> {
+export function createImmediateTextures(): { day: Texture; night: Texture } {
+  return {
+    day: createFallbackDayTexture(),
+    night: createFallbackNightTexture(),
+  };
+}
+
+export async function loadRemoteTextures(): Promise<{ day: Texture; night: Texture } | null> {
+  const timeout = new Promise<never>((_, reject) => {
+    window.setTimeout(() => reject(new Error("timeout texture")), 8000);
+  });
+
   try {
-    const [day, night, bump] = await Promise.all([
-      loadTexture(TEXTURE_URLS.day),
-      loadTexture(TEXTURE_URLS.night),
-      loadTexture(TEXTURE_URLS.bump),
+    return await Promise.race([
+      Promise.all([loadTexture(TEXTURE_URLS.day), loadTexture(TEXTURE_URLS.night)]).then(
+        ([day, night]) => ({ day, night }),
+      ),
+      timeout,
     ]);
-    return { day, night, bump };
   } catch {
-    return {
-      day: createFallbackDayTexture(),
-      night: createFallbackNightTexture(),
-      bump: null,
-    };
+    return null;
   }
 }
